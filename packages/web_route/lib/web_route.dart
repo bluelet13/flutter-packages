@@ -1,4 +1,4 @@
-library web_router;
+library web_route;
 
 export 'src/router.dart';
 export 'src/material.dart';
