@@ -122,9 +122,7 @@ class CodeReaderViewController {
   Future _handleMessages(MethodCall call) async {
     switch (call.method) {
       case "onReadCode":
-        if (this.isLock) return;
-        this.lock();
-        this.onQrBack(call.arguments as List<String>);
+        _onReadCode(call.arguments);
         break;
       case "permission":
         this.cameraPermission(call.arguments);
@@ -133,6 +131,17 @@ class CodeReaderViewController {
         break;
     }
   }
+
+  /// Listの内容が内容も含めて、dynamic型になってしまうので
+  /// 必ず小要素余さずに型変換を行う事
+  void _onReadCode(dynamic arguments) {
+    if (this.isLock) return;
+    this.lock();
+    final results = arguments as List<dynamic>;
+    final codes = results.map((e) => e.toString()).toList();
+    this.onQrBack(codes);
+  }
+
 
   ///
   void unlock() async {
