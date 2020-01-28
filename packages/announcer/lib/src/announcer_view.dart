@@ -2,28 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-typedef AnnounceFire = Future<void> Function(Announcement);
+import 'announce_controller.dart';
+import 'announcement.dart';
+
+typedef AnnounceFire = Future<void> Function(Announcement, bool);
 
 ///
-class Sample extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final announce = [
-      Announcement('aa'),
-      Announcement('ab'),
-      Announcement('ac'),
-    ];
-    return AnnouncerView(
-      announcements: announce,
-      callback: (c) {
-        return showDialog(context: null);
-      },
-      child: Container(color: Colors.red),
-    );
-  }
-}
-
-///
+// ignore: must_be_immutable
 class AnnouncerView extends StatefulWidget {
   ///
   final AnnounceFire callback;
@@ -35,66 +20,63 @@ class AnnouncerView extends StatefulWidget {
   final Widget child;
 
   ///
+  AnnounceController controller;
+
+  ///
   AnnouncerView({
     @required this.announcements,
     @required this.callback,
     @required this.child,
-  });
+    this.controller,
+  })  : assert(announcements != null && announcements.isNotEmpty),
+        assert(callback != null),
+        assert(child != null) {
+    this.controller = this.controller ?? AnnounceController();
+  }
 
   @override
   State<StatefulWidget> createState() => _AnnouncerViewState();
 }
 
 class _AnnouncerViewState extends State<AnnouncerView> {
-  ///
-  bool isLock = false;
-
   @override
   Widget build(BuildContext context) {
     _asyncCheckAnnounce(widget.announcements);
     return Container(child: widget.child);
   }
 
-  /// Lock
-  void lock() {
-    this.isLock = true;
-  }
-
-  /// Unlock
-  void unlock() {
-    this.isLock = true;
-  }
-
-  String _announceKey(String id) {
-    return "announce.$id";
-  }
-
   void _asyncCheckAnnounce(List<Announcement> announce) {
-    if (isLock) return;
-    this.lock();
+    if (widget.controller.isLocked) return;
+    widget.controller.lock();
     _callbackUnreadAnnounce(announce)
-        .then((value) => this.unlock())
-        .catchError(() => this.unlock());
+        .then(this._onValue, onError: this._onError);
   }
 
-  Future<void> _callbackUnreadAnnounce(List<Announcement> list) async {
+  Future<void> _callbackUnreadAnnounce(List<Announcement> announce) async {
     final preferences = await SharedPreferences.getInstance();
-    final announce = list
-        .where((element) => preferences.getBool(_announceKey(element.id)))
-        .toList();
-
     for (var i = 0; i < announce.length; i++) {
-      await widget.callback(announce[i]);
-      await preferences.setBool(announce[i].id, false);
+      await _s(preferences, announce[i]);
     }
   }
-}
 
-///
-class Announcement {
-  ///
-  final String id;
+  Future<void> _s(SharedPreferences preferences, Announcement announce) async {
+    final key = "announce.${announce.id}";
 
-  ///
-  Announcement(this.id);
+    final isFirst = !(preferences.getBool(key) ?? false);
+    await widget.callback(announce, isFirst);
+
+    if (isFirst) {
+      await preferences.setBool(key, true);
+    }
+  }
+
+  Future<void> _onValue(dynamic value) {
+    widget.controller.unlock();
+    return Future.value();
+  }
+
+  Future<void> _onError(dynamic error) {
+    widget.controller.unlock();
+    return Future.value();
+  }
 }
