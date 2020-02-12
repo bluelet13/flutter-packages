@@ -144,13 +144,15 @@ class CodeReaderViewController {
 
 
   ///
-  void unlock() async {
+  Future<bool> unlock() async {
     this.isLock = false;
+    return this.isLock;
   }
 
   ///
-  void lock() async {
+  Future<bool> lock() async {
     this.isLock = true;
+    return this.isLock;
   }
 
   /// 打开手电筒
