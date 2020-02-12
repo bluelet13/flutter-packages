@@ -13,7 +13,7 @@ class ConsumerStreamContainer<T, D> extends StatelessWidget {
   final Widget Function(BuildContext context, T value, D data) content;
 
   /// TODO: add comment
-  final Widget Function(BuildContext context, T value) error;
+  final Widget Function(BuildContext context, T value, Object error) error;
 
   /// TODO: add comment
   ConsumerStreamContainer({
@@ -28,7 +28,7 @@ class ConsumerStreamContainer<T, D> extends StatelessWidget {
     return ConsumerStreamBuilder(
       streamBuilder: this.stream,
       widgetBuilder: (BuildContext context, T value, AsyncSnapshot<D> snapshot) {
-        if (snapshot.hasError) return error(context, value);
+        if (snapshot.hasError) return error(context, value, snapshot.error);
         if (!snapshot.hasData) return loading(context, value);
         return content(context, value, snapshot.data);
       },

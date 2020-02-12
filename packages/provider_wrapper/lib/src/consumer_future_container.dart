@@ -16,7 +16,7 @@ class ConsumerFutureContainer<T, D> extends StatelessWidget {
   final Widget Function(BuildContext context, T value, D data) content;
 
   /// Widget used when the Future snapshot contains a non-null error value.
-  final Widget Function(BuildContext context, T value) error;
+  final Widget Function(BuildContext context, T value, Object error) error;
 
   /// Creates a widget that display "Widget" defined according to
   /// multiple states of Future in "ConsumerFutureBuilder"
@@ -32,7 +32,7 @@ class ConsumerFutureContainer<T, D> extends StatelessWidget {
     return ConsumerFutureBuilder(
       futureBuilder: this.future,
       widgetBuilder: (BuildContext context, T value, AsyncSnapshot<D> snapshot) {
-        if (snapshot.hasError) return error(context, value);
+        if (snapshot.hasError) return error(context, value, snapshot.error);
         if (!snapshot.hasData) return loading(context, value);
         return content(context, value, snapshot.data);
       },
