@@ -1,15 +1,17 @@
 package com.example.code_reader
 
-import android.annotation.SuppressLint
-import android.os.AsyncTask
+import android.app.Activity
+import android.os.Build
 import com.example.code_reader.factorys.QrReaderFactory
 import io.flutter.embedding.engine.plugins.FlutterPlugin
-import io.flutter.plugin.common.MethodCall
-import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import io.flutter.plugin.common.MethodChannel.Result
+import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
+import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.PluginRegistry.Registrar
-import java.io.File
+import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener
+import io.flutter.view.TextureRegistry
+
 
 /** CodeReaderPlugin */
 //public class CodeReaderPlugin: FlutterPlugin, MethodCallHandler {
@@ -48,65 +50,112 @@ import java.io.File
 //}
 
 
-open class FlutterQrReaderPlugin internal constructor(registrar: Registrar) : MethodCallHandler {
-    private val registrar: Registrar
-    //    @Override
-    override fun onMethodCall(call: MethodCall, result: Result) {
-        when (call.method) {
-            "setTorchMode" -> (call.arguments as HashMap<String, *>)["enabled"]?.let {
-                setTorchMode(it as Boolean, result)
-            }
-            else -> result.notImplemented()
-        }
+open class CodeReaderPlugin : FlutterPlugin, ActivityAware {
 
-        if (call.method.equals("imgQrCode")) {
-            imgQrCode(call, result)
-        } else {
-            result.notImplemented()
-        }
-    }
+    private var flutterPluginBinding: FlutterPluginBinding? = null
 
-    @SuppressLint("StaticFieldLeak")
-    fun imgQrCode(call: MethodCall, result: Result) {
-        val filePath: String? = call.argument("file")
-        if (filePath == null) {
-            result.error("Not found data", null, null)
-            return
-        }
-        val file = File(filePath)
-        if (!file.exists()) {
-            result.error("File not found", null, null)
-        }
-        object : AsyncTask<String?, Int?, String?>() {
-            override fun doInBackground(vararg params: String?): String? { // QrReaderFactory解析二维码/条码
-                return QRCodeDecoder.syncDecodeQRCode(filePath)
-            }
-
-            override fun onPostExecute(s: String?) {
-                super.onPostExecute(s)
-                if (null == s) {
-                    result.error("not data", null, null)
-                } else {
-                    result.success(s)
-                }
-            }
-        }.execute(filePath)
+    internal interface PermissionsRegistry {
+        fun addListener(handler: RequestPermissionsResultListener?)
     }
 
     companion object {
-        private const val CHANNEL_NAME = "com.example.code_reader.code_reader"
-        private const val CHANNEL_VIEW_NAME = "com.example.code_reader.code_reader.reader_view"
+        private const val CHANNEL_NAME = "dev.bluelet13.code_reader_view"
 
-        /** Plugin registration.  */
+        @JvmStatic
         fun registerWith(registrar: Registrar) {
-            val channel = MethodChannel(registrar.messenger(), CHANNEL_NAME)
-            registrar.platformViewRegistry().registerViewFactory(CHANNEL_VIEW_NAME, QrReaderFactory(registrar))
-            val instance = FlutterQrReaderPlugin(registrar)
-            channel.setMethodCallHandler(instance)
+            val plugin = CodeReaderPlugin()
+            plugin.maybeStartListening(registrar.activity(), registrar.messenger())
+
+
+//            CodeReaderPlugin.registrar = registrar
+//            val activity = registrar.activity()
+//            val messenger = registrar.messenger()
+//
+//            registrar.platformViewRegistry()
+//                    .registerViewFactory(CHANNEL_NAME, QrReaderFactory(activity, messenger))
+
+//            val channel = MethodChannel(registrar.messenger(), CHANNEL_NAME)
+//            registrar.platformViewRegistry().registerViewFactory(CHANNEL_VIEW_NAME, QrReaderFactory(registrar.messenger()))
+//            val instance = FlutterQrReaderPlugin(registrar)
+//            channel.setMethodCallHandler(instance)
         }
     }
 
-    init {
-        this.registrar = registrar
+    override fun onAttachedToEngine(binding: FlutterPluginBinding) {
+        flutterPluginBinding = binding
+//        val activity = binding. .activity()
+//        val messenger = binding.binaryMessenger
+//
+//        binding.platformViewRegistry
+//                .registerViewFactory(CHANNEL_NAME, QrReaderFactory(activity, messenger))
     }
+
+    override fun onDetachedFromEngine(binding: FlutterPluginBinding) {
+        flutterPluginBinding = null
+    }
+
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        maybeStartListening(binding.activity, flutterPluginBinding!!.binaryMessenger)
+//        binding.platformViewRegistry
+//                .registerViewFactory(CHANNEL_NAME, QrReaderFactory(activity, messenger))
+//        maybeStartListening(
+//                binding.activity,
+//                flutterPluginBinding!!.binaryMessenger,
+//                flutterPluginBinding!!.flutterEngine.renderer);
+    }
+
+    override fun onDetachedFromActivity() {
+    }
+
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+        onAttachedToActivity(binding)
+    }
+
+    override fun onDetachedFromActivityForConfigChanges() {
+        onDetachedFromActivity()
+    }
+
+    private fun maybeStartListening(
+            activity: Activity,
+            messenger: BinaryMessenger) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) { // If the sdk is less than 21 (min sdk for Camera2) we don't register the plugin.
+            return
+        }
+
+        flutterPluginBinding!!.platformViewRegistry
+                .registerViewFactory(CHANNEL_NAME, QrReaderFactory(activity, messenger))
+//        methodCallHandler = MethodCallHandlerImpl(
+//                activity, messenger, CameraPermissions(), permissionsRegistry, textureRegistry)
+    }
+
+    //  @TargetApi(Build.VERSION_CODES.M)
+//  private void checkPermissions(final PermissionsResult result) {
+//    if (!(registrar.activity().checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)) {
+//      registrar.addRequestPermissionsResultListener(new PluginRegistry.RequestPermissionsResultListener() {
+//        @Override
+//        public boolean onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+//          if (requestCode == REQUEST_CODE_CAMERA_PERMISSION) {
+//            for (int i = 0; i < permissions.length; i++) {
+//              String permission = permissions[i];
+//              int grantResult = grantResults[i];
+//
+//              if (permission.equals(Manifest.permission.CAMERA)) {
+//                if (grantResult == PackageManager.PERMISSION_GRANTED) {
+//                  result.onSuccess();
+//                } else {
+//                  result.onError();
+//                }
+//              }
+//            }
+//          }
+//          return false;
+//        }
+//      });
+//      registrar.activity().requestPermissions(new String[]{Manifest.permission.CAMERA}, REQUEST_CODE_CAMERA_PERMISSION);
+//    } else {
+//      result.onSuccess();
+//    }
+//  }
+
+
 }

@@ -10,7 +10,6 @@ class CodeReaderView extends StatefulWidget {
   /// ViewType
   final String viewType = "dev.bluelet13.code_reader_view";
 
-
   final ReadChangeBack onScan;
 
   ///
@@ -51,6 +50,8 @@ class CodeReaderViewState extends State<CodeReaderView> {
       return widget.noPermission ?? DefaultNoPermissionView();
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       return _provideIosPlatformView();
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
+      return _provideAndroidPlatformView();
     } else {
       return widget.noSupportPlatform ?? DefaultNoSupportPlatformView();
     }
@@ -59,6 +60,15 @@ class CodeReaderViewState extends State<CodeReaderView> {
   @override
   void dispose() {
     super.dispose();
+  }
+
+  Widget _provideAndroidPlatformView() {
+    return AndroidView(
+      viewType: widget.viewType,
+      creationParams: {},
+      creationParamsCodec: const StandardMessageCodec(),
+      onPlatformViewCreated: _onPlatformViewCreated,
+    );
   }
 
   /// Provide to iOS Platform view
@@ -72,9 +82,11 @@ class CodeReaderViewState extends State<CodeReaderView> {
   }
 
   void _onPlatformViewCreated(int id) {
-    final controller =
-    CodeReaderViewController(
-      id, widget.onScan, this._onUpdateCameraPermission,);
+    final controller = CodeReaderViewController(
+      id,
+      widget.onScan,
+      this._onUpdateCameraPermission,
+    );
     widget.callback(controller);
   }
 
@@ -82,7 +94,6 @@ class CodeReaderViewState extends State<CodeReaderView> {
     print("camera" + permission.toString());
     setState(() => this.cameraPermission = permission);
   }
-
 }
 
 ///
@@ -112,10 +123,11 @@ class CodeReaderViewController {
   bool isLock = false;
 
   ///
-  CodeReaderViewController(this.id,
-      this.onQrBack,
-      this.cameraPermission,)
-      : channel = MethodChannel('dev.bluelet13.code_reader_view_$id') {
+  CodeReaderViewController(
+    this.id,
+    this.onQrBack,
+    this.cameraPermission,
+  ) : channel = MethodChannel('dev.bluelet13.code_reader_view_$id') {
     channel.setMethodCallHandler(_handleMessages);
   }
 
@@ -141,7 +153,6 @@ class CodeReaderViewController {
     final codes = results.map((e) => e.toString()).toList();
     this.onQrBack(codes);
   }
-
 
   ///
   Future<bool> unlock() async {

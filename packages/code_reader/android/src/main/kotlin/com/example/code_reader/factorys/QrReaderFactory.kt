@@ -1,20 +1,18 @@
 package com.example.code_reader.factorys
 
+import android.app.Activity
 import android.content.Context
-import io.flutter.plugin.common.PluginRegistry
+import com.example.code_reader.readerView.CodeReaderView
 import io.flutter.plugin.common.StandardMessageCodec
 import io.flutter.plugin.platform.PlatformView
 import io.flutter.plugin.platform.PlatformViewFactory
-import me.hetian.flutter_qr_reader.views.QrReaderView
+import io.flutter.plugin.common.BinaryMessenger
 
-class QrReaderFactory(registrar: PluginRegistry.Registrar) : PlatformViewFactory(StandardMessageCodec.INSTANCE) {
-    private val registrar: PluginRegistry.Registrar
-//    @Override
-    override fun create(context: Context?, id: Int, args: Object?): PlatformView {
-        return QrReaderView(context, registrar, id, args)
+class QrReaderFactory(private val activity: Activity, private val messenger: BinaryMessenger) :
+        PlatformViewFactory(StandardMessageCodec.INSTANCE) {
+
+    override fun create(context: Context?, id: Int, args: Any?): PlatformView {
+        return CodeReaderView(activity, context!!, messenger, id)
     }
 
-    init {
-        this.registrar = registrar
-    }
 }
