@@ -9,12 +9,13 @@ import android.os.Build
 import android.util.Log
 import android.view.View
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.platform.PlatformView
 
-class CodeReaderView(activity: Activity, context: Context, messenger: BinaryMessenger, id: Int) :
+class CodeReaderView(private val activity: Activity, context: Context, messenger: BinaryMessenger, id: Int) :
         PlatformView, MethodChannel.MethodCallHandler, QRCodeReaderView.OnScanCompleteListener {
 
     private val codeReaderView: QRCodeReaderView = QRCodeReaderView(context)
@@ -42,8 +43,15 @@ class CodeReaderView(activity: Activity, context: Context, messenger: BinaryMess
                 result.success(null)
             }
             "startCamera" -> {
+                if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CAMERA)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    invokePermission()
+                    return
+                }
                 codeReaderView.cameraStart()
-                Log.i("code/plugin", "startCamera on CodeReaderView")
+                invokePermission()
+            }
+            "stopCamera" -> {
             }
             else -> result.notImplemented()
         }
@@ -54,6 +62,15 @@ class CodeReaderView(activity: Activity, context: Context, messenger: BinaryMess
 
     override fun onScanComplete(result: String) {
         Log.i("code/plugin", result)
+        activity.runOnUiThread {
+            channel.invokeMethod("onReadCode", listOf(result))
+        }
+    }
+
+    private fun invokePermission() {
+        activity.runOnUiThread {
+            channel.invokeMethod("permission", true)
+        }
     }
 
 }

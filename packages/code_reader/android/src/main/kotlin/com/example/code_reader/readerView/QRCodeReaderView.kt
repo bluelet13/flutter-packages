@@ -2,28 +2,43 @@ package com.example.code_reader.readerView;
 
 import android.content.Context
 import android.graphics.ImageFormat
+import android.graphics.SurfaceTexture
 import android.hardware.camera2.*
 import android.media.Image
 import android.media.ImageReader
 import android.os.AsyncTask
 import android.os.Handler
 import android.util.Log
+import android.util.Size
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.widget.FrameLayout
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.MultiFormatReader
 import com.google.zxing.NotFoundException
 import com.google.zxing.PlanarYUVLuminanceSource
 import com.google.zxing.common.HybridBinarizer
 import java.io.Serializable
+import java.lang.Long.signum
+import java.util.*
+import kotlin.collections.ArrayList
 
 class QRCodeReaderView(context: Context?) : SurfaceView(context), SurfaceHolder.Callback {
 
     interface OnScanCompleteListener : Serializable {
-        /**
-         * Invoked to provide access to the result of the QR scan.
-         */
         fun onScanComplete(result: String)
+    }
+
+    companion object {
+        internal const val STATE_FIND_QRCODE = 0
+        internal const val STATE_DECODE_PROGRESS = 1
+        internal const val STATE_QRCODE_EXIST = 2
+
+        internal const val MAX_PREVIEW_WIDTH = 786
+        internal const val MAX_PREVIEW_HEIGHT = 786
+
+        @Volatile
+        internal var qrState: Int = 0
     }
 
     private var imageReader: ImageReader? = null
@@ -54,17 +69,22 @@ class QRCodeReaderView(context: Context?) : SurfaceView(context), SurfaceHolder.
         }
     }
 
-
-    override fun surfaceCreated(holder: SurfaceHolder) {
+    init {
         this.holder.addCallback(this)
-        holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS)
-        holder.setFixedSize(300, 300)
     }
 
-    override fun surfaceChanged(holder: SurfaceHolder, p1: Int, p2: Int, p3: Int) {
+    override fun surfaceCreated(holder: SurfaceHolder) {
+        holder.setFixedSize(this.width, this.height)
+        Log.i("code/plugin", "surfaceCreated: size is ${width}x${height}")
+    }
+
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        holder.setFixedSize(width, height)
+        Log.i("code/plugin", "surfaceChanged: size is ${width}x${height}")
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
+        this.holder.removeCallback(this)
     }
 
     fun addOnScanCompleteListener(listener: OnScanCompleteListener) {
@@ -77,23 +97,19 @@ class QRCodeReaderView(context: Context?) : SurfaceView(context), SurfaceHolder.
 
             for (cameraId in manager.cameraIdList) {
                 this.cameraId = cameraId
+
+                val characteristics = manager.getCameraCharacteristics(cameraId)
+                characteristics.get(
+                        CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP) ?: continue
+
                 manager.openCamera(cameraId, stateCallback, null)
                 break
             }
         }
     }
 
+    fun cameraStop() {
 
-    companion object {
-        internal const val STATE_FIND_QRCODE = 0
-        internal const val STATE_DECODE_PROGRESS = 1
-        internal const val STATE_QRCODE_EXIST = 2
-
-        internal const val MAX_PREVIEW_WIDTH = 786
-        internal const val MAX_PREVIEW_HEIGHT = 786
-
-        @Volatile
-        internal var qrState: Int = 0
     }
 
     internal fun readImageSource(image: Image): PlanarYUVLuminanceSource? {

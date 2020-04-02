@@ -65,29 +65,11 @@ open class CodeReaderPlugin : FlutterPlugin, ActivityAware {
         fun registerWith(registrar: Registrar) {
             val plugin = CodeReaderPlugin()
             plugin.maybeStartListening(registrar.activity(), registrar.messenger())
-
-
-//            CodeReaderPlugin.registrar = registrar
-//            val activity = registrar.activity()
-//            val messenger = registrar.messenger()
-//
-//            registrar.platformViewRegistry()
-//                    .registerViewFactory(CHANNEL_NAME, QrReaderFactory(activity, messenger))
-
-//            val channel = MethodChannel(registrar.messenger(), CHANNEL_NAME)
-//            registrar.platformViewRegistry().registerViewFactory(CHANNEL_VIEW_NAME, QrReaderFactory(registrar.messenger()))
-//            val instance = FlutterQrReaderPlugin(registrar)
-//            channel.setMethodCallHandler(instance)
         }
     }
 
     override fun onAttachedToEngine(binding: FlutterPluginBinding) {
         flutterPluginBinding = binding
-//        val activity = binding. .activity()
-//        val messenger = binding.binaryMessenger
-//
-//        binding.platformViewRegistry
-//                .registerViewFactory(CHANNEL_NAME, QrReaderFactory(activity, messenger))
     }
 
     override fun onDetachedFromEngine(binding: FlutterPluginBinding) {
@@ -95,13 +77,9 @@ open class CodeReaderPlugin : FlutterPlugin, ActivityAware {
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-        maybeStartListening(binding.activity, flutterPluginBinding!!.binaryMessenger)
-//        binding.platformViewRegistry
-//                .registerViewFactory(CHANNEL_NAME, QrReaderFactory(activity, messenger))
-//        maybeStartListening(
-//                binding.activity,
-//                flutterPluginBinding!!.binaryMessenger,
-//                flutterPluginBinding!!.flutterEngine.renderer);
+        flutterPluginBinding?.let {
+            maybeStartListening(binding.activity, it.binaryMessenger)
+        }
     }
 
     override fun onDetachedFromActivity() {
@@ -115,47 +93,12 @@ open class CodeReaderPlugin : FlutterPlugin, ActivityAware {
         onDetachedFromActivity()
     }
 
-    private fun maybeStartListening(
-            activity: Activity,
-            messenger: BinaryMessenger) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) { // If the sdk is less than 21 (min sdk for Camera2) we don't register the plugin.
-            return
+    private fun maybeStartListening(activity: Activity, messenger: BinaryMessenger) {
+        flutterPluginBinding?.let {
+            val factory = QrReaderFactory(activity, messenger)
+            it.platformViewRegistry.registerViewFactory(CHANNEL_NAME, factory)
         }
-
-        flutterPluginBinding!!.platformViewRegistry
-                .registerViewFactory(CHANNEL_NAME, QrReaderFactory(activity, messenger))
-//        methodCallHandler = MethodCallHandlerImpl(
-//                activity, messenger, CameraPermissions(), permissionsRegistry, textureRegistry)
     }
-
-    //  @TargetApi(Build.VERSION_CODES.M)
-//  private void checkPermissions(final PermissionsResult result) {
-//    if (!(registrar.activity().checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)) {
-//      registrar.addRequestPermissionsResultListener(new PluginRegistry.RequestPermissionsResultListener() {
-//        @Override
-//        public boolean onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-//          if (requestCode == REQUEST_CODE_CAMERA_PERMISSION) {
-//            for (int i = 0; i < permissions.length; i++) {
-//              String permission = permissions[i];
-//              int grantResult = grantResults[i];
-//
-//              if (permission.equals(Manifest.permission.CAMERA)) {
-//                if (grantResult == PackageManager.PERMISSION_GRANTED) {
-//                  result.onSuccess();
-//                } else {
-//                  result.onError();
-//                }
-//              }
-//            }
-//          }
-//          return false;
-//        }
-//      });
-//      registrar.activity().requestPermissions(new String[]{Manifest.permission.CAMERA}, REQUEST_CODE_CAMERA_PERMISSION);
-//    } else {
-//      result.onSuccess();
-//    }
-//  }
 
 
 }
