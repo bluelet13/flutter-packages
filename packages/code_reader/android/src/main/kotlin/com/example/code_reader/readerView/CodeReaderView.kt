@@ -25,12 +25,6 @@ class CodeReaderView(private val activity: Activity, context: Context, messenger
 
     init {
         codeReaderView.addOnScanCompleteListener(this)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val permission = context.checkSelfPermission(Manifest.permission.CAMERA)
-            if (permission != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.CAMERA), 200)
-            }
-        }
     }
 
     override fun getView(): View {
@@ -39,9 +33,6 @@ class CodeReaderView(private val activity: Activity, context: Context, messenger
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
-            "setText" -> {
-                result.success(null)
-            }
             "startCamera" -> {
                 if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CAMERA)
                         != PackageManager.PERMISSION_GRANTED) {
@@ -61,8 +52,8 @@ class CodeReaderView(private val activity: Activity, context: Context, messenger
     }
 
     override fun onScanComplete(result: String) {
-        Log.i("code/plugin", result)
         activity.runOnUiThread {
+            Log.i("code/plugin", result)
             channel.invokeMethod("onReadCode", listOf(result))
         }
     }
